@@ -1,0 +1,16 @@
+{
+    "resourceType": "Patient",
+    "id": "patient-uuid",
+    "identifier": [
+      {
+        "system": "https://base_url.com/national-health-id",
+        "value": "CR123456789"
+      }
+    ],
+    "telecom": [
+      {
+        "system": "phone",
+        "value": "+254700000000"
+      }
+    ]
+  }

@@ -1,0 +1,38 @@
+graph TD
+    A[MedicationRequest] --> B[Patient]
+    A --> C[Practitioner]
+    A --> D[Medication]
+    A --> E[Encounter]
+    A --> F[Organization]
+    A --> G[Coverage]
+    
+    H[MedicationDispense] --> A
+    H --> B
+    H --> D
+    H --> I[Pharmacy Organization]
+    
+    B --> J[Demographics<br/>- Name<br/>- DOB<br/>- Address<br/>- Contact Info<br/>- Identifiers]
+    
+    C --> K[Prescriber Info<br/>- Credentials<br/>- License<br/>- Contact Details<br/>- NPI/DEA Numbers]
+    
+    D --> L[Medication Details<br/>- Active Ingredients<br/>- Strength<br/>- Dosage Form<br/>- RxNorm/SNOMED Codes]
+    
+    E --> M[Clinical Context<br/>- Visit Date<br/>- Diagnosis<br/>- Treatment Episode<br/>- Care Setting]
+    
+    F --> N[Healthcare Facility<br/>- Clinic/Hospital<br/>- Contact Info<br/>- Identifiers]
+    
+    G --> O[Insurance Info<br/>- Coverage Type<br/>- Benefit Details<br/>- Formulary Status]
+    
+    H --> P[Dispensing Record<br/>- Quantity Dispensed<br/>- Date Dispensed<br/>- Substitutions<br/>- Pharmacist Info]
+    
+    I --> Q[Pharmacy Details<br/>- Name<br/>- Address<br/>- License<br/>- Contact Info]
+    
+    style A fill:#e1f5fe
+    style H fill:#f3e5f5
+    style B fill:#fff3e0
+    style C fill:#f1f8e9
+    style D fill:#fce4ec
+    style E fill:#e8f5e8
+    style F fill:#fff8e1
+    style G fill:#f9fbe7
+    style I fill:#e3f2fd

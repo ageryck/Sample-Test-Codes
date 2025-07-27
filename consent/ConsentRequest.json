@@ -1,0 +1,41 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "request": {
+        "method": "POST",
+        "url": "Consent"
+      },
+      "resource": {
+        "resourceType": "Consent",
+        "status": "proposed",
+        "scope": {
+          "coding": [{
+            "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+            "code": "patient-privacy"
+          }]
+        },
+        "patient": {
+          "reference": "Patient/CR123456789"
+        },
+        "performer": [{
+          "reference": "Organization/provider-123"
+        }],
+        "provision": {
+          "type": "permit",
+          "period": {
+            "start": "2025-01-01",
+            "end": "2025-01-08"
+          },
+          "data": [{
+            "meaning": "instance",
+            "reference": {
+              "reference": "DocumentReference/lab-results-456"
+            }
+          }]
+        }
+      }
+    }
+  ]
+}

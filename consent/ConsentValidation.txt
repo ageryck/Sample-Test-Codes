@@ -1,0 +1,274 @@
+ALGORITHM: IntelligentConsentMatching
+INPUT: ConsentRequest (requester, patient, dataTypes, purpose, timeRange)
+OUTPUT: ConsentDecision (approved/denied, restrictions, expiryTime)
+
+FUNCTION validateConsentRequest(request):
+    // Step 1: Patient Identity Validation
+    patient = validatePatientIdentity(request.patientId)
+    IF patient == NULL:
+        RETURN DENIED("Invalid patient identifier")
+    
+    // Step 2: Retrieve Active Consents
+    activeConsents = getActiveConsents(patient.id, currentTimestamp)
+    
+    // Step 3: Requester Validation
+    requester = validateRequesterCredentials(request.requester)
+    IF requester == NULL:
+        RETURN DENIED("Invalid requester credentials")
+    
+    // Step 4: Organizational Relationship Check
+    relationshipScore = calculateOrganizationalRelationship(
+        patient.managingOrganization, 
+        requester.organization
+    )
+    
+    // Step 5: Data Type and Purpose Matching
+    FOR each dataType IN request.dataTypes:
+        matchingConsent = findBestConsentMatch(
+            activeConsents, 
+            dataType, 
+            request.purpose,
+            requester
+        )
+        
+        IF matchingConsent == NULL:
+            RETURN DENIED("No valid consent for " + dataType)
+        
+        // Step 6: Granular Permission Check
+        permissions = evaluateGranularPermissions(
+            matchingConsent,
+            dataType,
+            request.purpose,
+            requester.role
+        )
+        
+        IF permissions.denied:
+            RETURN DENIED("Granular permissions deny access")
+    
+    // Step 7: Temporal Validation
+    temporalValid = validateTemporalScope(
+        matchingConsent.dataPeriod,
+        request.timeRange
+    )
+    
+    IF NOT temporalValid:
+        RETURN DENIED("Temporal scope violation")
+    
+    // Step 8: Emergency Override Check
+    IF request.purpose == "ETREAT":
+        emergencyOverride = evaluateEmergencyOverride(
+            request,
+            patient.allergies,
+            patient.criticalConditions
+        )
+        IF emergencyOverride.granted:
+            RETURN APPROVED(emergencyOverride.permissions, "24H")
+    
+    // Step 9: Consent Reusability Assessment
+    reuseScore = calculateConsentReuseScore(
+        matchingConsent,
+        request,
+        relationshipScore
+    )
+    
+    IF reuseScore >= REUSE_THRESHOLD:
+        // Step 10: Apply Data Filtering and Masking
+        filteredPermissions = applyDataFiltering(
+            permissions,
+            requester.role,
+            request.purpose,
+            patient.preferences
+        )
+        
+        // Step 11: Generate Access Token
+        accessToken = generateAccessToken(
+            filteredPermissions,
+            matchingConsent.dataPeriod.end,
+            requester
+        )
+        
+        // Step 12: Log Consent Usage
+        logConsentUsage(
+            matchingConsent.id,
+            request,
+            accessToken.id,
+            "REUSED"
+        )
+        
+        RETURN APPROVED(filteredPermissions, accessToken)
+    ELSE:
+        // Require explicit consent
+        RETURN PENDING("Explicit consent required")
+
+FUNCTION findBestConsentMatch(consents, dataType, purpose, requester):
+    bestMatch = NULL
+    highestScore = 0
+    
+    FOR each consent IN consents:
+        score = calculateConsentMatchScore(consent, dataType, purpose, requester)
+        IF score > highestScore AND score >= MINIMUM_MATCH_THRESHOLD:
+            highestScore = score
+            bestMatch = consent
+    
+    RETURN bestMatch
+
+FUNCTION calculateConsentMatchScore(consent, dataType, purpose, requester):
+    score = 0
+    
+    // Data type matching (40% of score)
+    dataTypeScore = calculateDataTypeMatch(consent.provision.class, dataType)
+    score += dataTypeScore * 0.4
+    
+    // Purpose matching (30% of score)
+    purposeScore = calculatePurposeMatch(consent.provision.purpose, purpose)
+    score += purposeScore * 0.3
+    
+    // Requester relationship (20% of score)
+    requesterScore = calculateRequesterMatch(consent.provision.actor, requester)
+    score += requesterScore * 0.2
+    
+    // Temporal validity (10% of score)
+    temporalScore = calculateTemporalMatch(consent.provision.dataPeriod)
+    score += temporalScore * 0.1
+    
+    RETURN score
+
+FUNCTION evaluateGranularPermissions(consent, dataType, purpose, requesterRole):
+    permissions = {
+        "allowed": [],
+        "denied": [],
+        "masked": [],
+        "pseudonymized": []
+    }
+    
+    // Apply base permissions from consent.provision
+    basePermissions = consent.provision.type // permit or deny
+    
+    // Process nested provisions (exceptions)
+    FOR each nestedProvision IN consent.provision.provision:
+        IF matchesDataType(nestedProvision.class, dataType):
+            IF nestedProvision.type == "deny":
+                permissions.denied.add(nestedProvision.class)
+            ELSE IF nestedProvision.type == "permit":
+                permissions.allowed.add(nestedProvision.class)
+    
+    // Apply role-based filtering
+    roleBasedFilter = getRoleBasedFiltering(requesterRole, dataType)
+    permissions.masked.addAll(roleBasedFilter.maskedFields)
+    permissions.pseudonymized.addAll(roleBasedFilter.pseudonymizedFields)
+    
+    // Apply sensitivity-based restrictions
+    sensitivityLevel = getDataSensitivityLevel(dataType)
+    IF sensitivityLevel >= HIGH_SENSITIVITY:
+        permissions.masked.addAll(getHighSensitivityMasking())
+    
+    RETURN permissions
+
+FUNCTION calculateOrganizationalRelationship(patientOrg, requesterOrg):
+    // Direct organizational relationship
+    IF patientOrg.id == requesterOrg.id:
+        RETURN 1.0 // Same organization
+    
+    // Care network relationship
+    IF isInCareNetwork(patientOrg, requesterOrg):
+        RETURN 0.8 // Network partner
+    
+    // Referral relationship
+    IF hasActiveReferral(patientOrg, requesterOrg):
+        RETURN 0.6 // Active referral
+    
+    // No established relationship
+    RETURN 0.2 // Unknown organization
+
+FUNCTION validateTemporalScope(consentPeriod, requestTimeRange):
+    currentTime = getCurrentTimestamp()
+    
+    // Check if consent is currently active
+    IF currentTime < consentPeriod.start OR currentTime > consentPeriod.end:
+        RETURN FALSE
+    
+    // Check if request time range is within consent period
+    IF requestTimeRange.start < consentPeriod.start:
+        RETURN FALSE
+    
+    IF requestTimeRange.end > consentPeriod.end:
+        RETURN FALSE
+    
+    RETURN TRUE
+
+FUNCTION evaluateEmergencyOverride(request, allergies, criticalConditions):
+    override = {
+        "granted": FALSE,
+        "permissions": {},
+        "auditRequired": TRUE,
+        "notificationRequired": TRUE
+    }
+    
+    // Always grant access to critical safety information
+    IF request.dataTypes.contains("AllergyIntolerance"):
+        override.granted = TRUE
+        override.permissions.add("read:allergies")
+    
+    IF request.dataTypes.contains("CriticalConditions"):
+        override.granted = TRUE
+        override.permissions.add("read:critical-conditions")
+    
+    // Log emergency access for review
+    IF override.granted:
+        logEmergencyOverride(request, "Emergency access granted")
+        schedulePostEmergencyReview(request)
+    
+    RETURN override
+
+FUNCTION applyDataFiltering(permissions, role, purpose, patientPreferences):
+    filteredPermissions = permissions.clone()
+    
+    // Apply role-based data filtering
+    SWITCH role:
+        CASE "physician":
+            // Full clinical data access
+            BREAK
+        CASE "nurse":
+            // Limited to care-relevant data
+            filteredPermissions.denied.add("financial-data")
+            BREAK
+        CASE "pharmacist":
+            // Medication and allergy focus
+            filteredPermissions.allowed = filterToMedicationRelevant(permissions.allowed)
+            BREAK
+        CASE "billing":
+            // Financial and administrative data only
+            filteredPermissions.allowed = filterToFinancialRelevant(permissions.allowed)
+            filteredPermissions.masked.addAll(getAllClinicalData())
+            BREAK
+    
+    // Apply purpose-based filtering
+    SWITCH purpose:
+        CASE "TREAT":
+            // Treatment-relevant data only
+            BREAK
+        CASE "HPAYMT":
+            // Payment-relevant data, mask clinical details
+            filteredPermissions.masked.addAll(getDetailedClinicalData())
+            BREAK
+        CASE "HRESCH":
+            // Research data with de-identification
+            filteredPermissions.pseudonymized.addAll(getIdentifiableData())
+            BREAK
+    
+    // Apply patient preferences
+    FOR each preference IN patientPreferences:
+        IF preference.type == "MASK_DEMOGRAPHIC":
+            filteredPermissions.masked.add("Patient.name")
+            filteredPermissions.masked.add("Patient.address")
+        
+        IF preference.type == "NO_MARKETING":
+            IF purpose == "HMARKT":
+                filteredPermissions.denied.addAll(permissions.allowed)
+    
+    RETURN filteredPermissions
+
+// Constants and Thresholds
+MINIMUM_MATCH_THRESHOLD = 0.7
+REUSE_THRESHOLD = 0.8
+HIGH_SENSITIVITY = 3
