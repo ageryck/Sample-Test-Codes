@@ -173,7 +173,7 @@ class ConsentTestResources:
                 requester_organization="mtrh",
                 requester_role="pharmacist",
                 data_types=["MedicationDispense"], 
-                purpose="jsdfsd",
+                purpose="TREAT",
                 time_range={
                     "start": "2025-07-20T00:00:00Z",
                     "end": "2025-12-20T00:00:00Z"

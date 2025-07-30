@@ -4,18 +4,15 @@ FHIR R4B Compliant Consent Validation System
 Complete Implementation
 """
 
-# Remove duplicate classes (ConsentStatus, ConsentDecisionType, etc.)
-# Keep only the imports:
-from consent_status import ConsentStatus
-from consent_decision_type import ConsentDecisionType
-from sensitivity_level import SensitivityLevel
-from consent_request import ConsentRequest
-from consent_decision import ConsentDecision
-from data_permissions import DataPermissions
-from consent_validation_engine import ConsentValidationEngine
-from consent_test_resources import ConsentTestResources
-from utils import get_data_sensitivity_level
-from fhir_utils import create_fhir_consent_from_decision, generate_audit_event
+import json
+import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any, Tuple
+from dataclasses import dataclass, field
+from enum import Enum
+import logging
+import hashlib
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -221,7 +218,6 @@ class ConsentValidationEngine:
         return {
             "moh-kenya": ["knh-hospital", "mp-hospital", "aga-khan", "rural-health-centers"],
             "knh-hospital": ["moh-kenya", "specialist-clinics", "medical-college"],
-            "mtrh": ["moh-kenya", "specialist-clinics", "medical-college"],
             "mp-hospital": ["moh-kenya", "rural-health-centers", "community-clinics"],
             "research-institute": ["moh-kenya", "knh-hospital", "medical-college"],
             "mental-health-certified": ["knh-hospital", "specialized-mental-health"]
@@ -452,17 +448,6 @@ class ConsentValidationEngine:
                     "data_masking_preference": "enhanced"
                 },
                 "active": True
-            },
-            "CR123456790": {
-                "id": "CR123456790",
-                "identifier": [{"value": "CR123456790", "system": "national-health-id"}],
-                "managingOrganization": {"reference": "Organization/mtrh"},
-                "preferences": {
-                    "marketing_opt_out": True,
-                    "data_masking_preference": "standard",
-                    "notification_method": "sms"
-                },
-                "active": True
             }
         }
         
@@ -512,14 +497,6 @@ class ConsentValidationEngine:
                 "active": True,
                 "role": "pharmacist",
                 "license": "KE-PHARM-111"
-            },
-            "pharmacist-006": {
-                "id": "pharmacist-006",
-                "organization": "mtrh",
-                "verified": True,
-                "active": True,
-                "role": "pharmacist",
-                "license": "KE-PHARM-171"
             }
         }
         
@@ -1341,6 +1318,404 @@ class ConsentValidationEngine:
             return False
 
 
+# Utility Functions for Data Sensitivity
+def get_data_sensitivity_level(data_type: str) -> int:
+    """Get sensitivity level for data type"""
+    sensitivity_map = {
+        "Patient.demographics": 1,
+        "Observation.vital-signs": 1,
+        "Observation.laboratory": 2,
+        "DiagnosticReport.imaging": 2,
+        "Condition.diagnosis": 3,
+        "Condition.mental-health": 4,
+        "MedicationRequest.controlled": 4,
+        "AllergyIntolerance": 4,
+        "Observation.genetic": 5
+    }
+    return sensitivity_map.get(data_type, 2)  # Default to medium sensitivity
+
+
+# Sample Test Resources and Test Cases
+class ConsentTestResources:
+    """Sample test resources for consent validation testing"""
+    
+    @staticmethod
+    def create_sample_active_consents() -> List[Dict]:
+        """Create sample active consent resources"""
+        return [
+            {
+                "resourceType": "Consent",
+                "id": "consent-001-demographics",
+                "status": "active",
+                "scope": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+                        "code": "patient-privacy"
+                    }]
+                },
+                "category": [{
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/consentcategorycodes",
+                        "code": "idscl"
+                    }]
+                }],
+                "patient": {
+                    "reference": "Patient/CR123456789"
+                },
+                "dateTime": "2025-01-01T00:00:00Z",
+                "performer": [{
+                    "reference": "Patient/CR123456789"
+                }],
+                "provision": {
+                    "type": "permit",
+                    "dataPeriod": {
+                        "start": "2025-01-01T00:00:00Z",
+                        "end": "2026-01-01T00:00:00Z"
+                    },
+                    "class": [{
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "Patient",
+                        "display": "Patient Demographics"
+                    }, {
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "Observation.vital-signs",
+                        "display": "Vital Signs"
+                    }],
+                    "purpose": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+                        "code": "ETREAT"
+                    }],
+                    "actor": [{
+                        "role": {
+                            "coding": [{
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-RoleCode",
+                                "code": "ER",
+                                "display": "Emergency Room"
+                            }]
+                        }
+                    }],
+                    "securityLabel": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+                        "code": "EMRGONLY",
+                        "display": "Emergency Only"
+                    }]
+                }
+            },
+            {
+                "resourceType": "Consent",
+                "id": "consent-004-mental-health",
+                "status": "active",
+                "scope": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+                        "code": "patient-privacy"
+                    }]
+                },
+                "patient": {
+                    "reference": "Patient/CR123456789"
+                },
+                "dateTime": "2025-01-10T00:00:00Z",
+                "provision": {
+                    "type": "permit",
+                    "dataPeriod": {
+                        "start": "2025-01-10T00:00:00Z",
+                        "end": "2025-04-10T00:00:00Z"
+                    },
+                    "class": [{
+                        "system": "http://snomed.info/sct",
+                        "code": "74732009",
+                        "display": "Mental disorder"
+                    }, {
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "Condition.mental-health",
+                        "display": "Mental Health Conditions"
+                    }],
+                    "purpose": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+                        "code": "TREAT"
+                    }],
+                    "actor": [{
+                        "role": {
+                            "coding": [{
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                                "code": "CST",
+                                "display": "Custodian"
+                            }]
+                        },
+                        "reference": {
+                            "reference": "Organization/mental-health-certified"
+                        }
+                    }],
+                    "securityLabel": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality",
+                        "code": "R",
+                        "display": "Restricted"
+                    }]
+                }
+            },
+            {
+                "resourceType": "Consent",
+                "id": "consent-005-research",
+                "status": "active",
+                "scope": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+                        "code": "research"
+                    }]
+                },
+                "patient": {
+                    "reference": "Patient/CR123456789"
+                },
+                "dateTime": "2025-01-20T00:00:00Z",
+                "provision": {
+                    "type": "permit",
+                    "dataPeriod": {
+                        "start": "2025-01-20T00:00:00Z",
+                        "end": "2030-01-20T00:00:00Z"
+                    },
+                    "class": [{
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "Observation",
+                        "display": "Clinical Observations"
+                    }, {
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "Condition",
+                        "display": "Clinical Conditions"
+                    }, {
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "Observation.laboratory",
+                        "display": "Laboratory Results"
+                    }],
+                    "purpose": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+                        "code": "HRESCH"
+                    }],
+                    "actor": [{
+                        "role": {
+                            "coding": [{
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                                "code": "CST"
+                            }]
+                        },
+                        "reference": {
+                            "reference": "Organization/research-institute"
+                        }
+                    }],
+                    "provision": [{
+                        "type": "deny",
+                        "class": [{
+                            "system": "http://hl7.org/fhir/resource-types",
+                            "code": "Patient.identifier",
+                            "display": "Patient Identifiers"
+                        }]
+                    }]
+                }
+            },
+            {
+                "resourceType": "Consent",
+                "id": "consent-006-medication",
+                "status": "active",
+                "scope": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+                        "code": "patient-privacy"
+                    }]
+                },
+                "patient": {
+                    "reference": "Patient/CR123456789"
+                },
+                "dateTime": "2025-01-05T00:00:00Z",
+                "provision": {
+                    "type": "permit",
+                    "dataPeriod": {
+                        "start": "2025-01-05T00:00:00Z",
+                        "end": "2025-12-31T00:00:00Z"
+                    },
+                    "class": [{
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "MedicationRequest",
+                        "display": "Medication Prescriptions"
+                    }, {
+                        "system": "http://hl7.org/fhir/resource-types",
+                        "code": "MedicationDispense",
+                        "display": "Dispensed Medications"
+                    }],
+                    "purpose": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+                        "code": "TREAT"
+                    }],
+                    "actor": [{
+                        "role": {
+                            "coding": [{
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                                "code": "CST"
+                            }]
+                        },
+                        "reference": {
+                            "reference": "Organization/knh-hospital"
+                        }
+                    }]
+                }
+            }
+        ]
+
+    @staticmethod
+    def create_sample_consent_requests() -> List[ConsentRequest]:
+        """Create sample consent request test cases"""
+        return [
+            # Test Case 1: Valid demographics request
+            ConsentRequest(
+                request_id="req-001",
+                patient_id="CR123456789",
+                requester_id="dr-smith-001",
+                requester_organization="knh-hospital",
+                requester_role="physician",
+                data_types=["Patient.demographics"],
+                purpose="TREAT",
+                time_range={
+                    "start": "2025-01-01T00:00:00Z",
+                    "end": "2025-12-31T23:59:59Z"
+                }
+            ),
+            
+            # Test Case 2: Laboratory results request
+            ConsentRequest(
+                request_id="req-002",
+                patient_id="CR123456789",
+                requester_id="dr-smith-001",
+                requester_organization="knh-hospital",
+                requester_role="physician",
+                data_types=["Observation.laboratory"],
+                purpose="TREAT",
+                time_range={
+                    "start": "2025-01-15T00:00:00Z",
+                    "end": "2025-04-15T00:00:00Z"
+                }
+            ),
+            
+            # Test Case 3: Emergency allergy access
+            ConsentRequest(
+                request_id="req-003",
+                patient_id="CR123456789",
+                requester_id="dr-emergency-002",
+                requester_organization="knh-hospital",
+                requester_role="physician",
+                data_types=["AllergyIntolerance"],
+                purpose="ETREAT",
+                time_range={
+                    "start": "2025-01-25T14:30:00Z",
+                    "end": "2025-01-25T18:30:00Z"
+                },
+                emergency_context=True
+            ),
+            
+            # Test Case 4: Unauthorized genetic testing request
+            ConsentRequest(
+                request_id="req-004",
+                patient_id="CR123456789",
+                requester_id="dr-geneticist-004",
+                requester_organization="external-lab",
+                requester_role="physician",
+                data_types=["Observation.genetic"],
+                purpose="TREAT",
+                time_range={
+                    "start": "2025-01-15T00:00:00Z",
+                    "end": "2025-04-15T00:00:00Z"
+                }
+            ),
+            
+            # Test Case 5: Research data request
+            ConsentRequest(
+                request_id="req-005",
+                patient_id="CR123456789",
+                requester_id="researcher-004",
+                requester_organization="research-institute",
+                requester_role="researcher",
+                data_types=["Observation.laboratory", "Condition.diagnosis"],
+                purpose="HRESCH",
+                time_range={
+                    "start": "2025-01-20T00:00:00Z",
+                    "end": "2030-01-20T00:00:00Z"
+                }
+            ),
+            
+            # Test Case 6: Billing/administrative request
+            ConsentRequest(
+                request_id="req-006",
+                patient_id="CR123456789",
+                requester_id="billing-admin-006",
+                requester_organization="knh-hospital",
+                requester_role="billing",
+                data_types=["Patient.demographics", "Encounter.financial"],
+                purpose="HPAYMT",
+                time_range={
+                    "start": "2025-01-01T00:00:00Z",
+                    "end": "2025-06-30T00:00:00Z"
+                }
+            ),
+            
+            # Test Case 7: Mental health specialist request
+            ConsentRequest(
+                request_id="req-007",
+                patient_id="CR123456789",
+                requester_id="psychiatrist-007",
+                requester_organization="mental-health-certified",
+                requester_role="physician",
+                data_types=["Condition.mental-health"],
+                purpose="TREAT",
+                time_range={
+                    "start": "2025-01-10T00:00:00Z",
+                    "end": "2025-04-10T00:00:00Z"
+                }
+            ),
+            
+            # Test Case 8: Expired consent request
+            ConsentRequest(
+                request_id="req-008",
+                patient_id="CR123456789",
+                requester_id="dr-late-008",
+                requester_organization="knh-hospital",
+                requester_role="physician",
+                data_types=["Observation.laboratory"],
+                purpose="TREAT",
+                time_range={
+                    "start": "2025-05-01T00:00:00Z",
+                    "end": "2025-05-31T00:00:00Z"
+                }
+            ),
+            
+            # Test Case 9: Pharmacist medication request
+            ConsentRequest(
+                request_id="req-009",
+                patient_id="CR123456789",
+                requester_id="pharmacist-008",
+                requester_organization="knh-hospital",
+                requester_role="pharmacist",
+                data_types=["MedicationRequest", "AllergyIntolerance"],
+                purpose="TREAT",
+                time_range={
+                    "start": "2025-01-01T00:00:00Z",
+                    "end": "2025-12-31T00:00:00Z"
+                }
+            ),
+            
+            # Test Case 10: Invalid patient request
+            ConsentRequest(
+                request_id="req-010",
+                patient_id="INVALID-ID",
+                requester_id="dr-test-010",
+                requester_organization="knh-hospital",
+                requester_role="physician",
+                data_types=["Patient.demographics"],
+                purpose="TREAT",
+                time_range={
+                    "start": "2025-01-01T00:00:00Z",
+                    "end": "2025-12-31T00:00:00Z"
+                }
+            )
+        ]
+
+
 def run_consent_validation_tests():
     """Run comprehensive consent validation tests"""
     print("=" * 80)
@@ -1432,6 +1807,169 @@ def run_consent_validation_tests():
     return results
 
 
+# Example usage and integration functions
+def create_fhir_consent_from_decision(request: ConsentRequest, decision: ConsentDecision) -> Dict:
+    """Create a FHIR Consent resource from validation decision"""
+    if decision.decision != ConsentDecisionType.APPROVED:
+        return {}
+    
+    consent_id = f"consent-{request.request_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    consent = {
+        "resourceType": "Consent",
+        "id": consent_id,
+        "meta": {
+            "versionId": "1",
+            "lastUpdated": datetime.now().isoformat() + "Z"
+        },
+        "status": "active",
+        "scope": {
+            "coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+                "code": "patient-privacy"
+            }]
+        },
+        "category": [{
+            "coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/consentcategorycodes",
+                "code": "idscl"
+            }]
+        }],
+        "patient": {
+            "reference": f"Patient/{request.patient_id}"
+        },
+        "dateTime": datetime.now().isoformat() + "Z",
+        "performer": [{
+            "reference": f"Patient/{request.patient_id}"
+        }],
+        "provision": {
+            "type": "permit",
+            "dataPeriod": {
+                "start": request.time_range.get("start"),
+                "end": request.time_range.get("end")
+            },
+            "purpose": [{
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+                "code": request.purpose
+            }],
+            "actor": [{
+                "role": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                        "code": "CST"
+                    }]
+                },
+                "reference": {
+                    "reference": f"Organization/{request.requester_organization}"
+                }
+            }]
+        }
+    }
+    
+    # Add data classes
+    if decision.permissions and decision.permissions.get("allowed"):
+        consent["provision"]["class"] = []
+        for data_type in decision.permissions["allowed"]:
+            consent["provision"]["class"].append({
+                "system": "http://hl7.org/fhir/resource-types",
+                "code": data_type.split(".")[0],
+                "display": data_type
+            })
+    
+    # Add restrictions if any
+    if decision.restrictions:
+        consent["provision"]["securityLabel"] = []
+        for restriction in decision.restrictions:
+            consent["provision"]["securityLabel"].append({
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+                "code": restriction.replace("_", ""),
+                "display": restriction.replace("_", " ").title()
+            })
+    
+    return consent
+
+
+def generate_audit_event(request: ConsentRequest, decision: ConsentDecision) -> Dict:
+    """Generate FHIR AuditEvent for consent decision"""
+    outcome_code = "0" if decision.decision == ConsentDecisionType.APPROVED else "4"
+    action_code = "C" if decision.decision == ConsentDecisionType.APPROVED else "R"
+    
+    return {
+        "resourceType": "AuditEvent",
+        "type": {
+            "system": "http://terminology.hl7.org/CodeSystem/audit-event-type",
+            "code": "110110",
+            "display": "Patient Record"
+        },
+        "subtype": [{
+            "system": "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle",
+            "code": "access",
+            "display": "Access/View Record Lifecycle Event"
+        }],
+        "action": action_code,
+        "recorded": datetime.now().isoformat() + "Z",
+        "outcome": outcome_code,
+        "outcomeDesc": decision.reason,
+        "agent": [{
+            "type": {
+                "coding": [{
+                    "system": "http://terminology.hl7.org/CodeSystem/extra-security-role-type",
+                    "code": "humanuser",
+                    "display": "Human User"
+                }]
+            },
+            "who": {
+                "reference": f"Practitioner/{request.requester_id}"
+            },
+            "requestor": True,
+            "role": [{
+                "coding": [{
+                    "system": "http://terminology.hl7.org/CodeSystem/v3-RoleCode",
+                    "code": request.requester_role.upper(),
+                    "display": request.requester_role.title()
+                }]
+            }],
+            "network": {
+                "address": request.requester_organization,
+                "type": "5"
+            }
+        }],
+        "source": {
+            "site": "Consent Management Platform",
+            "observer": {
+                "reference": "Device/cmp-validation-engine"
+            },
+            "type": [{
+                "system": "http://terminology.hl7.org/CodeSystem/security-source-type",
+                "code": "4",
+                "display": "Application Server"
+            }]
+        },
+        "entity": [{
+            "what": {
+                "reference": f"Patient/{request.patient_id}"
+            },
+            "type": {
+                "system": "http://terminology.hl7.org/CodeSystem/audit-entity-type",
+                "code": "1",
+                "display": "Person"
+            },
+            "role": {
+                "system": "http://terminology.hl7.org/CodeSystem/object-role",
+                "code": "1",
+                "display": "Patient"
+            }
+        }],
+        "purposeOfEvent": [{
+            "coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+                "code": request.purpose,
+                "display": request.purpose
+            }]
+        }]
+    }
+
+
 def demonstrate_token_validation():
     """Demonstrate token validation functionality"""
     print("\n" + "=" * 80)
@@ -1501,3 +2039,4 @@ if __name__ == "__main__":
     print(f"   - Approved requests: {approved_count}")
     print(f"   - Total test cases: {len(test_results)}")
     print(f"   - Success rate: {(approved_count / len(test_results)) * 100:.1f}%")
+    print(f"")
