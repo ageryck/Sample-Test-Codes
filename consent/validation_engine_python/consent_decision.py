@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
-from .consent_decision_type import ConsentDecisionType
+from consent_decision_type import ConsentDecisionType
 
 @dataclass
 class ConsentDecision:

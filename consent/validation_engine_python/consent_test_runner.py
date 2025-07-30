@@ -3,15 +3,15 @@ Consent Management Platform - Test Runner and Utilities
 Comprehensive testing framework for consent validation engine
 """
 
-import json
-import time
-import asyncio
-from typing import Dict, List, Any, Tuple
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-import statistics
-import concurrent.futures
-from unittest.mock import Mock, patch
+# Replace the problematic import line:
+# from consent_validation_python import (...)
+
+# With proper relative imports:
+from consent_validation_engine import ConsentValidationEngine
+from consent_request import ConsentRequest
+from consent_decision import ConsentDecision
+from consent_decision_type import ConsentDecisionType
+from consent_test_resources import ConsentTestResources
 
 # Import our consent validation engine
 from consent_validation_python import (
@@ -103,13 +103,32 @@ class ConsentValidationTestRunner:
                 }
             },
             {
-                "scenario_id": "SC005",
+                "scenario_id": "SC006",
+                "name": "Prescription Access",
+                "expected_outcome": "APPROVED",
+                "consent_request": {
+                    "request_id": "req-sc006",
+                    "patient_id": "CR123456790",
+                    "requester_id": "pharmacist-006",
+                    "requester_organization": "mtrh",
+                    "requester_role": "pharmacist",
+                    "data_types": ["MedicationDispense"],
+                    "purpose": "TREAT",
+                    "time_range": {
+                        "start": "2025-01-20T00:00:00Z",
+                        "end": "2025-01-20T00:00:00Z"
+                    },
+                    "emergency_context": False
+                }
+            },
+            {
+                "scenario_id": "SC004",
                 "name": "Invalid Patient Identity",
                 "expected_outcome": "DENIED",
                 "consent_request": {
                     "request_id": "req-sc005",
-                    "patient_id": "INVALID-ID",
-                    "requester_id": "dr-test-005",
+                    "patient_id": "CR123-p@sdf",
+                    "requester_id": "dr-test-004",
                     "requester_organization": "knh-hospital",
                     "requester_role": "physician",
                     "data_types": ["Patient.demographics"],

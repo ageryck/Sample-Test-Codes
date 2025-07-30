@@ -1,21 +1,25 @@
 from typing import Dict
 from datetime import datetime
-from .consent_request import ConsentRequest
-from .consent_decision import ConsentDecision
-from .consent_decision_type import ConsentDecisionType
+from consent_request import ConsentRequest
+from consent_decision import ConsentDecision
+from consent_decision_type import ConsentDecisionType
+from utils import get_current_utc
 
 
 def create_fhir_consent_from_decision(request: ConsentRequest, decision: ConsentDecision) -> Dict:
     """Create a FHIR Consent resource from validation decision"""
     if decision.decision != ConsentDecisionType.APPROVED:
         return {}
-    consent_id = f"consent-{request.request_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    current_time = get_current_utc()
+    consent_id = f"consent-{request.request_id}-{current_time.strftime('%Y%m%d%H%M%S')}"
+
     consent = {
         "resourceType": "Consent",
         "id": consent_id,
         "meta": {
             "versionId": "1",
-            "lastUpdated": datetime.now().isoformat() + "Z"
+            "lastUpdated": current_time.isoformat()
         },
         "status": "active",
         "scope": {
@@ -33,7 +37,7 @@ def create_fhir_consent_from_decision(request: ConsentRequest, decision: Consent
         "patient": {
             "reference": f"Patient/{request.patient_id}"
         },
-        "dateTime": datetime.now().isoformat() + "Z",
+        "dateTime": current_time.isoformat(),
         "performer": [{
             "reference": f"Patient/{request.patient_id}"
         }],
@@ -60,15 +64,17 @@ def create_fhir_consent_from_decision(request: ConsentRequest, decision: Consent
             }]
         }
     }
+
     # Add data classes
     if decision.permissions and decision.permissions.get("allowed"):
         consent["provision"]["class"] = []
         for data_type in decision.permissions["allowed"]:
             consent["provision"]["class"].append({
                 "system": "http://hl7.org/fhir/resource-types",
-                "code": data_type.split(".")[0],
+                "code": data_type.split(".")[0] if "." in data_type else data_type,
                 "display": data_type
             })
+
     # Add restrictions if any
     if decision.restrictions:
         consent["provision"]["securityLabel"] = []
@@ -78,6 +84,7 @@ def create_fhir_consent_from_decision(request: ConsentRequest, decision: Consent
                 "code": restriction.replace("_", ""),
                 "display": restriction.replace("_", " ").title()
             })
+
     return consent
 
 
@@ -85,6 +92,8 @@ def generate_audit_event(request: ConsentRequest, decision: ConsentDecision) -> 
     """Generate FHIR AuditEvent for consent decision"""
     outcome_code = "0" if decision.decision == ConsentDecisionType.APPROVED else "4"
     action_code = "C" if decision.decision == ConsentDecisionType.APPROVED else "R"
+    current_time = get_current_utc()
+
     return {
         "resourceType": "AuditEvent",
         "type": {
@@ -98,7 +107,7 @@ def generate_audit_event(request: ConsentRequest, decision: ConsentDecision) -> 
             "display": "Access/View Record Lifecycle Event"
         }],
         "action": action_code,
-        "recorded": datetime.now().isoformat() + "Z",
+        "recorded": current_time.isoformat(),
         "outcome": outcome_code,
         "outcomeDesc": decision.reason,
         "agent": [{
@@ -158,4 +167,4 @@ def generate_audit_event(request: ConsentRequest, decision: ConsentDecision) -> 
                 "display": request.purpose
             }]
         }]
-    } 
+    }

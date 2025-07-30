@@ -4,27 +4,18 @@ FHIR R4B Compliant Consent Validation System
 Complete Implementation
 """
 
-# This file has been split into multiple modules for maintainability.
-from .consent_status import ConsentStatus
-from .consent_decision_type import ConsentDecisionType
-from .sensitivity_level import SensitivityLevel
-from .consent_request import ConsentRequest
-from .consent_decision import ConsentDecision
-from .data_permissions import DataPermissions
-from .consent_validation_engine import ConsentValidationEngine
-from .consent_test_resources import ConsentTestResources
-from .utils import get_data_sensitivity_level
-from .fhir_utils import create_fhir_consent_from_decision, generate_audit_event
-
-import json
-import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-import logging
-import hashlib
-import re
+# Remove duplicate classes (ConsentStatus, ConsentDecisionType, etc.)
+# Keep only the imports:
+from consent_status import ConsentStatus
+from consent_decision_type import ConsentDecisionType
+from sensitivity_level import SensitivityLevel
+from consent_request import ConsentRequest
+from consent_decision import ConsentDecision
+from data_permissions import DataPermissions
+from consent_validation_engine import ConsentValidationEngine
+from consent_test_resources import ConsentTestResources
+from utils import get_data_sensitivity_level
+from fhir_utils import create_fhir_consent_from_decision, generate_audit_event
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -230,6 +221,7 @@ class ConsentValidationEngine:
         return {
             "moh-kenya": ["knh-hospital", "mp-hospital", "aga-khan", "rural-health-centers"],
             "knh-hospital": ["moh-kenya", "specialist-clinics", "medical-college"],
+            "mtrh": ["moh-kenya", "specialist-clinics", "medical-college"],
             "mp-hospital": ["moh-kenya", "rural-health-centers", "community-clinics"],
             "research-institute": ["moh-kenya", "knh-hospital", "medical-college"],
             "mental-health-certified": ["knh-hospital", "specialized-mental-health"]
@@ -460,6 +452,17 @@ class ConsentValidationEngine:
                     "data_masking_preference": "enhanced"
                 },
                 "active": True
+            },
+            "CR123456790": {
+                "id": "CR123456790",
+                "identifier": [{"value": "CR123456790", "system": "national-health-id"}],
+                "managingOrganization": {"reference": "Organization/mtrh"},
+                "preferences": {
+                    "marketing_opt_out": True,
+                    "data_masking_preference": "standard",
+                    "notification_method": "sms"
+                },
+                "active": True
             }
         }
         
@@ -509,6 +512,14 @@ class ConsentValidationEngine:
                 "active": True,
                 "role": "pharmacist",
                 "license": "KE-PHARM-111"
+            },
+            "pharmacist-006": {
+                "id": "pharmacist-006",
+                "organization": "mtrh",
+                "verified": True,
+                "active": True,
+                "role": "pharmacist",
+                "license": "KE-PHARM-171"
             }
         }
         
