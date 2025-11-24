@@ -192,7 +192,7 @@ Response (if exists):
 **If No Exact Match, Search by Demographics**:
 ```
 GET https://cr.hie.example.com/fhir/Patient?
-    family=Doe&
+    family=Juma&
     given=John&
     birthdate=1985-06-15&
     gender=male
@@ -222,7 +222,7 @@ POST https://cr.hie.example.com/fhir/Patient
   "name": [
     {
       "use": "official",
-      "family": "Doe",
+      "family": "Juma",
       "given": ["John", "Patrick"]
     }
   ],
@@ -235,7 +235,7 @@ POST https://cr.hie.example.com/fhir/Patient
     },
     {
       "system": "email",
-      "value": "john.doe@example.com",
+      "value": "john.Juma@example.com",
       "use": "home"
     }
   ],
@@ -269,7 +269,7 @@ POST https://cr.hie.example.com/fhir/Patient
         }]
       }],
       "name": {
-        "family": "Doe",
+        "family": "Juma",
         "given": ["Jane"]
       },
       "telecom": [{

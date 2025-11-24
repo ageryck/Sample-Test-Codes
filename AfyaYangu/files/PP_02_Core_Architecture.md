@@ -39,7 +39,7 @@ graph TB
         BMS[Benefits Management<br/>System]
         eRX[e-Prescription<br/>System]
         Scheduler[Appointment<br/>Scheduler]
-        NHIF[National Insurance<br/>API]
+        SHA[National Insurance<br/>API]
     end
     
     WebApp --> Gateway
@@ -67,7 +67,7 @@ graph TB
     IOL --> BMS
     IOL --> eRX
     IOL --> Scheduler
-    IOL --> NHIF
+    IOL --> SHA
     
     Insurance --> EventBus
     EventBus --> BMS
@@ -724,7 +724,7 @@ graph TB
   "service": "patient-portal-bff",
   "userId": "patient-123",
   "action": "fetch_benefit_balances",
-  "membershipId": "NHIF-12345",
+  "membershipId": "SHA-12345",
   "duration_ms": 245,
   "cache_hit": true,
   "status": "success"
