@@ -74,7 +74,7 @@ GET /bms/api/v1/enrollments/{membershipId}/balances
 
 Response:
 {
-  "membershipId": "NHIF-12345",
+  "membershipId": "SHA-12345",
   "patientId": "patient-123",
   "scheme": "National Health Insurance",
   "balances": [
@@ -164,7 +164,7 @@ sequenceDiagram
   "eventId": "evt-abc123",
   "timestamp": "2025-11-20T14:30:00Z",
   "data": {
-    "membershipId": "NHIF-12345",
+    "membershipId": "SHA-12345",
     "beneficiaryId": "ben-123",
     "patientId": "patient-123",
     "benefitType": "OUTPATIENT",
@@ -183,7 +183,7 @@ sequenceDiagram
   "eventId": "evt-def456",
   "timestamp": "2025-11-20T10:00:00Z",
   "data": {
-    "membershipId": "NHIF-12345",
+    "membershipId": "SHA-12345",
     "patientId": "patient-123",
     "previousStatus": "ACTIVE",
     "newStatus": "SUSPENDED",
@@ -199,11 +199,11 @@ sequenceDiagram
   "eventId": "evt-ghi789",
   "timestamp": "2025-11-20T15:00:00Z",
   "data": {
-    "membershipId": "NHIF-12345",
+    "membershipId": "SHA-12345",
     "beneficiaryId": "ben-456",
     "patientId": "patient-456",
     "relationship": "CHILD",
-    "memberCardNumber": "NHIF-12345-02",
+    "memberCardNumber": "SHA-12345-02",
     "effectiveDate": "2025-11-20"
   }
 }
@@ -292,7 +292,7 @@ sequenceDiagram
     participant Portal
     participant Insurance
     participant BMS
-    participant NHIF as National Insurance API
+    participant SHA as National Insurance API
     participant CR
     
     User->>Portal: Select Dependent
@@ -310,8 +310,8 @@ sequenceDiagram
     BMS->>BMS: Generate Member Card
     
     alt National Insurance
-        BMS->>NHIF: Register Beneficiary
-        NHIF-->>BMS: Beneficiary Number
+        BMS->>SHA: Register Beneficiary
+        SHA-->>BMS: Beneficiary Number
     end
     
     BMS->>BMS: Allocate Benefits
@@ -334,8 +334,8 @@ interface BeneficiaryEligibilityRules {
   };
 }
 
-// Example: NHIF Family Cover Rules
-const nhifFamilyRules: BeneficiaryEligibilityRules = {
+// Example: SHA Family Cover Rules
+const SHAFamilyRules: BeneficiaryEligibilityRules = {
   maxBeneficiaries: 6,
   allowedRelationships: ['SPOUSE', 'CHILD', 'PARENT'],
   ageRestrictions: {
@@ -437,15 +437,15 @@ sequenceDiagram
 
 ## Benefit Balance Display
 
-### Dashboard View
+### Dashboard View - Replace with Figma Design
 
 ```
 ┌─────────────────────────────────────────────┐
 │ 💳 My Insurance Coverage                    │
 ├─────────────────────────────────────────────┤
 │                                             │
-│ NHIF - Family Cover                         │
-│ Member: NHIF-12345 (Primary)                │
+│ SHA - Family Cover                         │
+│ Member: SHA-12345 (Primary)                │
 │ Status: ✓ ACTIVE                            │
 │ Renews: Dec 31, 2025                        │
 │                                             │
@@ -471,9 +471,9 @@ sequenceDiagram
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
 │                                             │
 │ 👥 Covered Beneficiaries (3/6)              │
-│ • Jane Doe (Spouse) - NHIF-12345-02         │
-│ • Mary Doe (Child) - NHIF-12345-03          │
-│ • Tom Doe (Child) - NHIF-12345-04           │
+│ • Jane Juma (Spouse) - SHA-12345-02         │
+│ • Mary Juma (Child) - SHA-12345-03          │
+│ • Tom Juma (Child) - SHA-12345-04           │
 │                                             │
 │ [Add Beneficiary] [View Claims History]     │
 └─────────────────────────────────────────────┘
@@ -516,8 +516,8 @@ class BenefitCacheService {
 
 ### One Person, Multiple Roles
 
-**Example**: Mary Doe (patient-789)
-- Beneficiary in John's NHIF (NHIF-12345-03)
+**Example**: Mary Juma (patient-789)
+- Beneficiary in John's SHA (SHA-12345-03)
 - Beneficiary in Jane's Private Insurance (PVT-67890-03)
 
 ```typescript

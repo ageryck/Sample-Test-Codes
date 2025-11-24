@@ -79,7 +79,7 @@ POST https://cr.hie.example.com/fhir/RelatedPerson
   "resourceType": "RelatedPerson",
   "patient": {
     "reference": "Patient/patient-123",
-    "display": "John Doe (Primary)"
+    "display": "John Juma (Primary)"
   },
   "relationship": [{
     "coding": [{
@@ -96,7 +96,7 @@ POST https://cr.hie.example.com/fhir/RelatedPerson
     "url": "http://patient-portal.hie.example.com/fhir/StructureDefinition/dependent-patient-reference",
     "valueReference": {
       "reference": "Patient/patient-456",
-      "display": "Mary Doe"
+      "display": "Mary Juma"
     }
   }]
 }
@@ -132,17 +132,17 @@ sequenceDiagram
 
 ## Family Tree Visualization
 
-### Example: John Doe's Family Tree
+### Example: John Juma's Family Tree
 
 ```
-Primary Account Holder: John Doe (patient-123)
-├── Spouse: Jane Doe (patient-456)
-├── Child: Mary Doe (patient-789)
-└── Child: Tom Doe (patient-012)
+Primary Account Holder: John Juma (patient-123)
+├── Spouse: Jane Juma (patient-456)
+├── Child: Mary Juma (patient-789)
+└── Child: Tom Juma (patient-012)
 
 Notes:
 - Each person (John, Jane, Mary, Tom) has ONE Patient ID in CR
-- Jane Doe can also have her own portal account
+- Jane Juma can also have her own portal account
 - If Jane logs in, she sees John and the children as HER family members
 - Mary and Tom are minors, so they don't have portal accounts yet
 ```
@@ -256,23 +256,23 @@ function canAccessDependentData(
 ### One Person, Multiple Insurance Roles
 
 **Example**:
-- Mary Doe (patient-789) is:
-  - Beneficiary under John's NHIF scheme (member: NHIF-12345-03)
+- Mary Juma (patient-789) is:
+  - Beneficiary under John's SHA scheme (member: SHA-12345-03)
   - Beneficiary under Jane's Private insurance (member: PVT-67890-03)
 
 ```mermaid
 graph TB
     subgraph "Client Registry"
-        P[Mary Doe<br/>patient-789<br/>ONE Patient Record]
+        P[Mary Juma<br/>patient-789<br/>ONE Patient Record]
     end
     
     subgraph "Insurance Enrollments"
-        E1[NHIF Enrollment<br/>Principal: John Doe]
-        E2[Private Insurance<br/>Principal: Jane Doe]
+        E1[SHA Enrollment<br/>Principal: John Juma]
+        E2[Private Insurance<br/>Principal: Jane Juma]
     end
     
     subgraph "Beneficiary Records"
-        B1[Beneficiary Record<br/>Member: NHIF-12345-03<br/>Patient: patient-789]
+        B1[Beneficiary Record<br/>Member: SHA-12345-03<br/>Patient: patient-789]
         B2[Beneficiary Record<br/>Member: PVT-67890-03<br/>Patient: patient-789]
     end
     
