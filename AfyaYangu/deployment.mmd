@@ -1,0 +1,58 @@
+graph TB
+    subgraph "Edge Layer"
+        CDN[CDN / Cloudflare<br/>Static Assets]
+        WAF[Web Application Firewall]
+    end
+    
+    subgraph "Application Layer - Kubernetes"
+        Ingress[NGINX Ingress<br/>TLS Termination]
+        Portal1[Patient Portal Pod 1]
+        Portal2[Patient Portal Pod 2]
+        Portal3[Patient Portal Pod 3]
+        BFF1[GraphQL BFF Pod 1]
+        BFF2[GraphQL BFF Pod 2]
+    end
+    
+    subgraph "Cache Layer"
+        Redis1[Redis Primary]
+        Redis2[Redis Replica]
+    end
+    
+    subgraph "Data Layer"
+        PG[(PostgreSQL<br/>User Accounts)]
+        Mongo[(MongoDB<br/>Audit Logs)]
+    end
+    
+    subgraph "Integration Layer"
+        IOL[OpenHIE IOL]
+        Kafka[Kafka Cluster]
+    end
+    
+    CDN --> WAF
+    WAF --> Ingress
+    Ingress --> Portal1
+    Ingress --> Portal2
+    Ingress --> Portal3
+    
+    Portal1 --> BFF1
+    Portal2 --> BFF1
+    Portal3 --> BFF2
+    
+    BFF1 --> Redis1
+    BFF2 --> Redis1
+    Redis1 -.->|Replication| Redis2
+    
+    BFF1 --> PG
+    BFF2 --> PG
+    BFF1 --> Mongo
+    
+    BFF1 --> IOL
+    BFF2 --> IOL
+    
+    BFF1 --> Kafka
+    BFF2 --> Kafka
+    
+    style CDN fill:#3498db,color:#fff
+    style Portal1 fill:#2ecc71,color:#fff
+    style BFF1 fill:#e74c3c,color:#fff
+    style IOL fill:#9b59b6,color:#fff

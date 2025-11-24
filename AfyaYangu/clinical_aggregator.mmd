@@ -1,0 +1,17 @@
+graph LR
+    A[Patient Portal Request] --> B[Clinical Aggregator]
+    B --> C[SHR: Encounters]
+    B --> D[eRX: Prescriptions]
+    B --> E[Lab System: Results]
+    B --> F[Imaging: Reports]
+    
+    C --> G[Response Aggregator]
+    D --> G
+    E --> G
+    F --> G
+    
+    G --> H[Unified Timeline View]
+    H --> A
+    
+    style B fill:#e74c3c
+    style G fill:#3498db

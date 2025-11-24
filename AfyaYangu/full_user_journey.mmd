@@ -1,0 +1,70 @@
+sequenceDiagram
+    autonumber
+    participant User
+    participant Portal
+    participant Auth
+    participant Reg as Registration Svc
+    participant Family as Family Svc
+    participant Insurance as Insurance Svc
+    participant IOL
+    participant CR
+    participant BMS
+    
+    rect rgb(200, 220, 240)
+    Note over User,CR: Phase 1: Registration
+    User->>Portal: Register New Account
+    Portal->>Reg: Submit Details
+    Reg->>IOL: Create Patient (FHIR)
+    IOL->>CR: POST Patient Resource
+    CR-->>IOL: Patient ID
+    IOL-->>Reg: Patient Created
+    Reg->>Auth: Create Login
+    Auth-->>Reg: User Account
+    Reg-->>Portal: Registration Success
+    end
+    
+    rect rgb(220, 240, 200)
+    Note over User,CR: Phase 2: Add Dependent
+    User->>Portal: Add Dependent (Child)
+    Portal->>Family: Create Dependent
+    Family->>IOL: Check if Patient Exists
+    IOL->>CR: Search Patient
+    CR-->>IOL: Not Found
+    IOL-->>Family: Create New
+    Family->>IOL: Create Patient + RelatedPerson
+    IOL->>CR: POST Resources
+    CR-->>IOL: Created
+    IOL-->>Family: Dependent Added
+    Family-->>Portal: Family Updated
+    end
+    
+    rect rgb(240, 220, 200)
+    Note over User,BMS: Phase 3: Enroll in Insurance
+    User->>Portal: Enroll in SHA
+    Portal->>Insurance: Create Enrollment
+    Insurance->>IOL: Forward to BMS
+    IOL->>BMS: Create Membership
+    BMS-->>IOL: Membership Created
+    IOL-->>Insurance: Enrollment ID
+    
+    User->>Portal: Add Child as Beneficiary
+    Portal->>Insurance: Add Beneficiary
+    Insurance->>IOL: Validate & Add
+    IOL->>BMS: Add Beneficiary
+    BMS->>BMS: Allocate Benefits
+    BMS-->>IOL: Beneficiary Added
+    IOL-->>Insurance: Success
+    Insurance-->>Portal: Updated Enrollment
+    end
+    
+    rect rgb(220, 200, 240)
+    Note over User,BMS: Phase 4: Check Benefits
+    User->>Portal: View Benefits
+    Portal->>Insurance: Get Balances
+    Insurance->>IOL: Query BMS
+    IOL->>BMS: GET Balances
+    BMS-->>IOL: Benefit Details
+    IOL-->>Insurance: Benefits
+    Insurance-->>Portal: Display Balances
+    Portal-->>User: Show Dashboard
+    end

@@ -1,0 +1,40 @@
+sequenceDiagram
+    participant User as Primary Patient
+    participant Portal
+    participant Family as Family Service
+    participant CR
+    participant BMS
+    
+    User->>Portal: Add Dependent (Enter Details)
+    Portal->>Family: Submit Dependent Info
+    
+    Family->>CR: Search Patient
+    Note over CR: Search by National ID,<br/>Name, DOB
+    
+    alt Dependent Exists in CR
+        CR-->>Family: Existing Patient Record
+        Family->>Family: Check if already linked
+        alt Already Linked
+            Family-->>Portal: Dependent already added
+        else Not Linked
+            Family->>CR: Create RelatedPerson
+            Note over CR: Links existing Patient<br/>to primary Patient
+            CR-->>Family: Relationship Created
+            Family-->>Portal: Dependent Linked
+        end
+    else Dependent Not in CR
+        Family->>CR: Create New Patient
+        CR-->>Family: New Patient ID
+        Family->>CR: Create RelatedPerson
+        CR-->>Family: Relationship Created
+        Family-->>Portal: New Dependent Added
+    end
+    
+    Portal-->>User: Family Tree Updated
+    
+    opt Add to Insurance
+        User->>Portal: Enroll Dependent in Insurance
+        Portal->>BMS: Add Beneficiary
+        BMS->>BMS: Validate Eligibility
+        BMS-->>Portal: Enrollment Status
+    end

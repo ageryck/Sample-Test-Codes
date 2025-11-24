@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant User
+    participant Portal
+    participant Insurance as Insurance Service
+    participant BMS
+    participant SHA as SHA API
+    participant CR
+    
+    Note over User,CR: Scenario: Add Dependent as Beneficiary
+    
+    User->>Portal: Select Insurance Scheme
+    Portal->>Insurance: Get Available Schemes
+    Insurance->>BMS: Query Eligible Schemes
+    BMS-->>Insurance: List (SHA, Private Plans)
+    Insurance-->>Portal: Display Schemes
+    
+    User->>Portal: Select SHA Scheme
+    User->>Portal: Select Dependent (Mary Doe)
+    
+    Portal->>Insurance: Add Beneficiary Request
+    Insurance->>CR: Validate Dependent Exists
+    CR-->>Insurance: Patient ID Confirmed
+    
+    Insurance->>BMS: Check Eligibility Rules
+    Note over BMS: Validate:<br/>- Age limits<br/>- Relationship allowed<br/>- Max beneficiaries<br/>- Not already enrolled
+    BMS-->>Insurance: Eligible
+    
+    Insurance->>BMS: Create Beneficiary Record
+    BMS->>BMS: Generate Member Card ID
+    
+    alt National Insurance (SHA)
+        BMS->>SHA: Register Beneficiary
+        SHA-->>BMS: Beneficiary Number
+    end
+    
+    BMS->>BMS: Update Benefit Allocations
+    BMS-->>Insurance: Beneficiary Created
+    
+    Insurance->>Insurance: Update Local Cache
+    Insurance-->>Portal: Success + Member Details
+    Portal-->>User: Beneficiary Added

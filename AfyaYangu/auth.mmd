@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant User
+    participant Portal
+    participant Auth as Auth Service
+    participant CR
+    participant TokenStore as Redis Token Store
+    
+    User->>Portal: Login (username/password)
+    Portal->>Auth: Authentication Request
+    Auth->>CR: Verify Patient Exists
+    CR-->>Auth: Patient ID
+    Auth->>Auth: Validate Credentials
+    Auth->>TokenStore: Store Session
+    Auth-->>Portal: Access Token + Refresh Token
+    Note over Portal: Store tokens securely<br/>(HttpOnly cookies)
+    
+    Portal->>Portal: Store Patient Context
+    Portal-->>User: Login Success
+    
+    loop Subsequent Requests
+        User->>Portal: Access Protected Resource
+        Portal->>Auth: Validate Token
+        Auth->>TokenStore: Check Token
+        TokenStore-->>Auth: Valid
+        Auth-->>Portal: Token Valid + Claims
+        Portal->>Portal: Check Permissions
+        Portal-->>User: Resource Data
+    end

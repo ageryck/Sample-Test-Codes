@@ -1,0 +1,75 @@
+graph TB
+    subgraph "Client Layer"
+        WebApp[Web Application<br/>React PWA]
+        MobileApp[Mobile App<br/>React Native]
+    end
+    
+    subgraph "API Gateway & BFF"
+        Gateway[API Gateway<br/>Kong/NGINX]
+        PatientBFF[Patient Portal BFF<br/>GraphQL]
+        Auth[Auth Service<br/>OAuth2/OIDC]
+    end
+    
+    subgraph "Patient Portal Services"
+        Registration[Registration<br/>Service]
+        Profile[Profile Management<br/>Service]
+        Family[Family Tree<br/>Service]
+        Insurance[Insurance Enrollment<br/>Service]
+        Clinical[Clinical Data<br/>Aggregator]
+        Appointment[Appointment<br/>Service]
+    end
+    
+    subgraph "HIE Integration Layer"
+        IOL[Interoperability Layer<br/>FHIR Gateway]
+        EventBus[Event Bus<br/>Kafka]
+    end
+    
+    subgraph "HIE Registries"
+        CR[Client Registry<br/>Patient MPI]
+        SHR[Shared Health Record<br/>Clinical Data]
+        HFR[Health Facility<br/>Registry]
+    end
+    
+    subgraph "HIE Ecosystem Apps"
+        BMS[Benefits Management<br/>System]
+        eRX[e-Prescription<br/>System]
+        Scheduler[Appointment<br/>Scheduler]
+        SHA[National Insurance<br/>API - SHA]
+    end
+    
+    WebApp --> Gateway
+    MobileApp --> Gateway
+    Gateway --> Auth
+    Gateway --> PatientBFF
+    
+    PatientBFF --> Registration
+    PatientBFF --> Profile
+    PatientBFF --> Family
+    PatientBFF --> Insurance
+    PatientBFF --> Clinical
+    PatientBFF --> Appointment
+    
+    Registration --> IOL
+    Profile --> IOL
+    Family --> IOL
+    Insurance --> IOL
+    Clinical --> IOL
+    Appointment --> IOL
+    
+    IOL --> CR
+    IOL --> SHR
+    IOL --> HFR
+    IOL --> BMS
+    IOL --> eRX
+    IOL --> Scheduler
+    IOL --> SHA
+    
+    Insurance --> EventBus
+    EventBus --> BMS
+    
+    style WebApp fill:#3498db,color:#fff
+    style MobileApp fill:#3498db,color:#fff
+    style PatientBFF fill:#e74c3c,color:#fff
+    style IOL fill:#9b59b6,color:#fff
+    style CR fill:#2ecc71,color:#fff
+    style BMS fill:#f39c12,color:#fff

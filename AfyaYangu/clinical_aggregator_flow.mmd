@@ -1,0 +1,32 @@
+sequenceDiagram
+    participant Portal
+    participant Aggregator as Clinical Aggregator
+    participant Cache as Redis Cache
+    participant SHR
+    participant eRX
+    participant Labs
+    
+    Portal->>Aggregator: GET /patients/{id}/clinical-summary
+    
+    Aggregator->>Cache: Check Cached Data
+    
+    alt Cache Hit (Fresh)
+        Cache-->>Aggregator: Cached Summary
+        Aggregator-->>Portal: Return Cached Data
+    else Cache Miss or Stale
+        par Parallel Fetch
+            Aggregator->>SHR: GET Encounters (last 6 months)
+            Aggregator->>eRX: GET Active Prescriptions
+            Aggregator->>Labs: GET Recent Lab Results
+        end
+        
+        SHR-->>Aggregator: Encounter Bundle
+        eRX-->>Aggregator: Prescription List
+        Labs-->>Aggregator: Lab Results
+        
+        Aggregator->>Aggregator: Merge & Sort by Date
+        Aggregator->>Aggregator: Build Timeline
+        
+        Aggregator->>Cache: Store (TTL: 5 min)
+        Aggregator-->>Portal: Clinical Summary
+    end

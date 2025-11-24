@@ -1,0 +1,38 @@
+graph TB
+    subgraph "Client Registry - Single Source of Truth"
+        P1[Patient: John Juma<br/>ID: patient-123<br/>NID: 12345678]
+        P2[Patient: Jane Juma<br/>ID: patient-456<br/>NID: 87654321]
+        P3[Patient: Mary Juma<br/>ID: patient-789<br/>NID: 11223344]
+    end
+    
+    subgraph "Family Relationships - Portal Layer"
+        P1 -->|Spouse| P2
+        P1 -->|Child| P3
+        P2 -->|Child| P3
+    end
+    
+    subgraph "Insurance Scheme A - SHA"
+        E1[Enrollment: SHA-12345<br/>Principal: John Juma]
+        E1 -->|Beneficiary| B1[Jane Juma<br/>Member: SHA-12345-02]
+        E1 -->|Beneficiary| B2[Mary Juma<br/>Member: SHA-12345-03]
+    end
+    
+    subgraph "Insurance Scheme B - Private"
+        E2[Enrollment: PVT-67890<br/>Principal: Jane Juma]
+        E2 -->|Beneficiary| B3[John Juma<br/>Member: PVT-67890-02]
+        E2 -->|Beneficiary| B4[Mary Juma<br/>Member: PVT-67890-03]
+    end
+    
+    B1 -.->|References| P2
+    B2 -.->|References| P3
+    B3 -.->|References| P1
+    B4 -.->|References| P3
+    
+    Note1["Note: Mary Juma (patient-789)<br/>is beneficiary in BOTH<br/>insurance schemes"]
+    
+    style P1 fill:#3498db,color:#fff
+    style P2 fill:#3498db,color:#fff
+    style P3 fill:#3498db,color:#fff
+    style E1 fill:#2ecc71,color:#fff
+    style E2 fill:#e74c3c,color:#fff
+    style Note1 fill:#fff3cd,stroke:#ffc107

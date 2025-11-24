@@ -1,0 +1,36 @@
+sequenceDiagram
+    participant User
+    participant Portal as Patient Portal
+    participant Reg as Registration Service
+    participant NRB as National ID System - NRB
+    participant CR as Client Registry
+    participant Auth as Auth Service
+    participant Email as Email Service
+    
+    User->>Portal: Enter Registration Details
+    Portal->>Reg: Submit Registration
+    
+    Reg->>NRB: Verify National ID
+    NRB-->>Reg: ID Valid + Demographics
+    
+    Reg->>CR: Search Patient (PDQ)
+    Note over CR: Search by ID, Name, DOB
+    CR-->>Reg: Check Results
+    
+    alt Patient Exists
+        Reg-->>Portal: Account Already Exists
+        Portal-->>User: Link to Login/Recovery
+    else New Patient
+        Reg->>Reg: Validate Data
+        Reg->>CR: Create Patient (FHIR POST)
+        CR-->>Reg: Patient ID + MPI
+        
+        Reg->>Auth: Create User Account
+        Auth-->>Reg: User Credentials
+        
+        Reg->>Email: Send Verification Email
+        Email-->>User: Verification Link
+        
+        Reg-->>Portal: Registration Success
+        Portal-->>User: Verify Email Prompt
+    end

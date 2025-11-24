@@ -1,0 +1,39 @@
+flowchart TB
+ subgraph subGraph0["Patient Portal"]
+        Portal["Web/Mobile App"]
+        Insurance["Insurance Service"]
+        Cache["Redis Cache"]
+  end
+ subgraph subGraph1["Integration Layer"]
+        IOL["HIE IOL"]
+        EventBus["Kafka Event Bus"]
+  end
+ subgraph BMS["BMS"]
+        BMSAPI["BMS API Gateway"]
+        Enrollment["Enrollment Service"]
+        Benefits["Benefits Calculation"]
+        Claims["Claims Processing"]
+        EventPub["Event Publisher"]
+  end
+    Portal -- "1. Query Balances" --> Insurance
+    Insurance -- "2. Check Cache" --> Cache
+    Cache -. Cache Miss .-> Insurance
+    Insurance -- "3. REST API Call" --> IOL
+    IOL -- "4. Forward" --> BMSAPI
+    BMSAPI --> Benefits
+    Benefits -- "5. Calculate" --> Benefits
+    Benefits -- "6. Response" --> BMSAPI
+    BMSAPI -- "7. Return" --> IOL
+    IOL -- "8. Return" --> Insurance
+    Insurance -- "9. Cache" --> Cache
+    Insurance -- "10. Display" --> Portal
+    Claims -- Benefit Used Event --> EventPub
+    EventPub -- Publish --> EventBus
+    EventBus -- Subscribe --> Insurance
+    Insurance -- Invalidate Cache --> Cache
+    subGraph1 --> n1["Untitled Node"]
+    subGraph1 --> n2["Untitled Node"]
+
+    style Insurance fill:#3498db
+    style EventBus fill:#9b59b6
+    style BMSAPI fill:#f39c12

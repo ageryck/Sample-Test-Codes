@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant Facility as Healthcare Facility
+    participant Claims as Claims System
+    participant BMS
+    participant EventBus as Kafka Event Bus
+    participant Portal as Patient Portal
+    participant User as Patient
+    
+    Note over Facility,User: Patient receives treatment at facility
+    
+    Facility->>Claims: Submit Claim
+    Claims->>BMS: Process Claim
+    BMS->>BMS: Approve & Deduct from Balance
+    
+    BMS->>EventBus: Publish BenefitUtilized Event
+    Note over EventBus: Event: {<br/>membershipId: "SHA-12345",<br/>amount: 2500,<br/>newBalance: 37500<br/>}
+    
+    EventBus->>Portal: Deliver Event
+    Portal->>Portal: Invalidate Cache
+    Portal->>Portal: Update Local Snapshot
+    
+    Portal->>User: Push Notification
+    Note over User: "Your outpatient benefit<br/>balance is now KES 37,500"
+    
+    alt User Opens App
+        User->>Portal: Refresh Benefits
+        Portal->>Portal: Serve from Cache
+        Portal-->>User: Updated Balance
+    end
