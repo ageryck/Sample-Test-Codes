@@ -56,7 +56,7 @@ graph TB
     end
     
     subgraph Data["Data Layer"]
-        K[Client Registry OpenCR]
+        K[Client Registry]
         L[Redis Cache]
         M[PostgreSQL]
     end
