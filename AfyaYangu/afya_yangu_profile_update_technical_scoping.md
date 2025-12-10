@@ -106,8 +106,8 @@ flowchart TD
 ## 4. Security & Compliance Measures
 
 **Authentication & Authorization**
-- National ID validation against Client Registry (OpenCR FHIR endpoint)
-- Multi-factor authentication via OTP (SMS gateway integration with Safaricom M-Pesa API)
+- National ID validation against Client Registry (CR FHIR endpoint)
+- Multi-factor authentication via OTP (SMS gateway integration with Safaricom API)
 - PIN hashing using bcrypt (cost factor 12) before storage
 
 **Data Protection (DPA 2019 Compliance)**
