@@ -1,4 +1,4 @@
-# Technical Scoping Document: Afya Yangu Self-Service Profile Update
+# Technical Architecture: Afya Yangu Self-Service Profile Update
 
 ## 1. Background & Context
 
