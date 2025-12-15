@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Patient Portal, branded as **Afya Yangu** (My Health), is a consumer-facing digital platform that empowers patients with secure access to their health information, insurance benefits, household dependents management, and care coordination within the national Health Information Exchange (HIE) ecosystem.
+The Patient Portal, branded as **Afya Yangu**, is a consumer-facing digital platform that empowers patients with secure access to their health information, insurance benefits, household dependents management, and care coordination within the national Health Information Exchange (HIE) ecosystem.
 
 **Purpose**: Provide patients with a unified, mobile-first interface to manage their healthcare journey, from registration to clinical data access and insurance benefit tracking.
 
@@ -60,7 +60,7 @@ Afya Yangu serves as the primary digital touchpoint between patients and the hea
 ## Core Architectural Principles
 
 ### 1. HIE Integration First
-All data flows through the OpenHIE Interoperability Layer (IOL) using HL7 FHIR R4 standards, ensuring:
+All data flows through the HIE Interoperability Layer (IOL) using HL7 FHIR R4 standards, ensuring:
 - Standardized data exchange
 - Interoperability with existing health systems
 - Centralized security and audit logging
@@ -91,8 +91,8 @@ All data flows through the OpenHIE Interoperability Layer (IOL) using HL7 FHIR R
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Afya Yangu Portal                     │
-│              (Web App + Mobile App)                      │
+│                    Afya Yangu Portal                    │
+│              (Web App + Mobile App)                     │
 └───────────────────────┬─────────────────────────────────┘
                         │
                         ▼
@@ -103,7 +103,7 @@ All data flows through the OpenHIE Interoperability Layer (IOL) using HL7 FHIR R
                         │
                         ▼
             ┌───────────────────────┐
-            │  OpenHIE IOL (FHIR)  │
+            │  OpenHIE IOL (FHIR)   │
             │  Interoperability     │
             └───────────┬───────────┘
                         │

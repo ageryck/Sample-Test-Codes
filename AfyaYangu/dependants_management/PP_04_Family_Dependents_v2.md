@@ -165,7 +165,7 @@ sequenceDiagram
     participant User
     participant AY as Afya Yangu
     participant Reg as Registration Service
-    participant NID as National ID System
+    participant NRB as National Registration Bureau
     participant CR
     participant Auth
     
@@ -173,8 +173,8 @@ sequenceDiagram
     User->>AY: Enter Personal Details
     
     AY->>Reg: Submit Registration
-    Reg->>NID: Verify National ID
-    NID-->>Reg: ID Valid + Demographics
+    Reg->>NRB: Verify National ID
+    NRB-->>Reg: ID Valid + Demographics
     
     Reg->>CR: Search for Existing Patient
     CR-->>Reg: Not Found
@@ -229,7 +229,7 @@ sequenceDiagram
     participant AY as Afya Yangu
     participant HH as Household Service
     participant CR
-    participant NID
+    participant NRB
     
     Head->>AY: Login to Afya Yangu
     Head->>AY: Navigate to "My Household"
@@ -240,8 +240,8 @@ sequenceDiagram
     
     AY->>HH: Submit New Dependent
     
-    HH->>NID: Verify National ID (if provided)
-    NID-->>HH: Verification Result
+    HH->>NRB: Verify National ID (if provided)
+    NRB-->>HH: Verification Result
     
     HH->>CR: Search for Existing Patient
     Note over CR: Search by National ID,<br/>Name + DOB
